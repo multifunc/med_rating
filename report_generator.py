@@ -2,7 +2,14 @@
 
 import logging
 from pathlib import Path
+from json import JSONDecodeError
 from typing import List, Dict, Optional
+
+import requests
+from requests import RequestException
+from jsonschema import validate, ValidationError, SchemaError
+
+from schemas import USERS, TASKS
 
 ROOT_DIR = Path(__name__).parent
 REPORT_DIR = ROOT_DIR.joinpath("tasks")
@@ -83,6 +90,18 @@ def get_users_from_api(users_api_url: str) -> Optional[List[Dict]]:
     Функция отправляет запрос на API для получения json словаря со списком данных пользователей
     :return: при успешном запросе возвращается json словарь со списком пользователей, иначе возвращает None
     """
+    try:
+        response = requests.get(users_api_url)
+        users = response.json()
+        validate(users, schema=USERS)
+        return users
+    except (RequestException, JSONDecodeError, ValidationError, SchemaError) as e:
+        if isinstance(e, RequestException):
+            logger.exception(f"Ошибка при получение данных: <{e}>!")
+        elif isinstance(e, JSONDecodeError):
+            logger.exception(f"Ошибка при парсинге json - ответа от сервера: <{e}>.")
+        elif isinstance(e, (ValidationError, SchemaError)):
+            logger.exception(f"Ошибка валидации списка пользователей по схеме USERS: {e}")
 
 
 def get_tasks_from_api(tasks_api_url: str) -> Optional[List[Dict]]:
@@ -90,6 +109,18 @@ def get_tasks_from_api(tasks_api_url: str) -> Optional[List[Dict]]:
     Функция отправляет запрос на API для получения json словаря со списком заданий
     :return: при успешном запросе возвращается json словарь со списком заданий, иначе возвращает None
     """
+    try:
+        response = requests.get(tasks_api_url)
+        tasks = response.json()
+        validate(tasks, schema=TASKS)
+        return tasks
+    except (RequestException, JSONDecodeError, ValidationError, SchemaError) as e:
+        if isinstance(e, RequestException):
+            logger.exception(f"Ошибка при получение данных: <{e}>!")
+        elif isinstance(e, JSONDecodeError):
+            logger.exception(f"Ошибка при парсинге json - ответа от сервера: <{e}>.")
+        elif isinstance(e, (ValidationError, SchemaError)):
+            logger.exception(f"Ошибка валидации списка задач по схеме TASKS: {e}")
 
 
 if __name__ == '__main__':
